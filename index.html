@@ -129,7 +129,7 @@
     <span class="lg-taken"><i></i>vendido</span>
   </div>
   <div class="grid" id="grid"></div>
-  <div style="text-align:center;font-size:10px;color:#5b4a7a;margin-top:22px">versão 3 · atualizada</div>
+  <div style="text-align:center;font-size:10px;color:#5b4a7a;margin-top:22px">versão 4 · com pagar/cancelar</div>
 </div>
 
 <div class="bar"><div class="inner">
@@ -167,7 +167,8 @@
       Abra seu banco, escolha <b>Pix › Pix Copia e Cola</b> (ou leia o QR Code), confira o valor e confirme.<br>
       Se puder, manda o print pro meu direct depois, pra eu confirmar mais rápido 💜
     </div>
-    <button class="btn-x" id="pay-close">escolher mais números</button>
+    <button class="btn-go" id="pay-paid">Já fiz o Pix 💜</button>
+    <button class="btn-x" id="pay-cancel">cancelar reserva e liberar os números</button>
   </div>
 </div>
 
@@ -289,12 +290,12 @@
         conflito.forEach(i=>sel.delete(i)); saveSel();
         $('modal-form').classList.remove('on'); render(); return;
       }
-      [...sel].forEach(i=> taken[i]={nome,wpp,status:'reservado'});
+      [...sel].forEach(i=> taken[i]={nome,wpp,status:'reservado',ts:Date.now()});
       const ok = await putData();
       if(!ok){ toast('Sem conexão, tenta de novo num instante 💜'); [...sel].forEach(i=>delete taken[i]); return; }
-      const total = sel.size*PRECO;
-      const nums = [...sel].sort((a,b)=>a-b).map(pad).join(', ');
-      showPay(total, nums);
+      const arr = [...sel].sort((a,b)=>a-b);
+      const total = arr.length*PRECO;
+      showPay(total, arr);
       sel.clear(); saveSel();
       $('modal-form').classList.remove('on');
       render();
@@ -303,8 +304,10 @@
     }
   };
 
-  function showPay(total, nums){
-    $('pay-sel').innerHTML = 'Seus números: <b>'+nums+'</b>';
+  let lastReserved = [];
+  function showPay(total, arr){
+    lastReserved = arr.slice();
+    $('pay-sel').innerHTML = 'Seus números: <b>'+arr.map(pad).join(', ')+'</b>';
     $('pay-val').textContent = brl(total);
     const code = pix(total);
     $('pix-code').value = code;
@@ -316,7 +319,24 @@
     const t=$('pix-code'); t.select();
     navigator.clipboard.writeText(t.value).then(()=>toast('Código Pix copiado! 🍀')).catch(()=>{ document.execCommand('copy'); toast('Copiado!'); });
   };
-  $('pay-close').onclick = ()=> $('modal-pay').classList.remove('on');
+  // Já fiz o Pix: mantém reservado (a Marina confirma depois), só fecha
+  $('pay-paid').onclick = ()=>{
+    $('modal-pay').classList.remove('on');
+    lastReserved = [];
+    toast('Obrigada! 💜 Seus números estão guardados, vou confirmar o pagamento.');
+  };
+  // Cancelar: libera os números que acabaram de ser reservados
+  $('pay-cancel').onclick = async ()=>{
+    const btn=$('pay-cancel'); btn.textContent='liberando...';
+    await fetchData();
+    lastReserved.forEach(i=>{ if(taken[i] && taken[i].status==='reservado') delete taken[i]; });
+    await putData();
+    lastReserved = [];
+    btn.textContent='cancelar reserva e liberar os números';
+    $('modal-pay').classList.remove('on');
+    render();
+    toast('Reserva cancelada, números liberados 🍀');
+  };
 
   function toast(msg){ const t=$('toast'); t.textContent=msg; t.style.display='block'; clearTimeout(t._t); t._t=setTimeout(()=>t.style.display='none',2600); }
 
