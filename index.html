@@ -131,7 +131,7 @@
     <span class="lg-taken"><i></i>vendido</span>
   </div>
   <div class="grid" id="grid"></div>
-  <div style="text-align:center;font-size:10px;color:#5b4a7a;margin-top:22px">versão 9</div>
+  <div style="text-align:center;font-size:10px;color:#5b4a7a;margin-top:22px">versão 10</div>
 </div>
 
 <div class="bar"><div class="inner">
@@ -383,7 +383,7 @@
         '<div><div class="v">'+pagos+'</div><div class="l">Pagos</div></div>'+
         '<div><div class="v" style="color:#c9a86a">'+res+'</div><div class="l">Reservados</div></div>'+
         '<div><div class="v" style="color:#fde68a">'+(TOTAL-vals.length)+'</div><div class="l">Livres</div></div>'+
-        '<div><div class="v" style="color:#86efac">'+brl(pagos*PRECO).replace(',00','')+'</div><div class="l">Recebido</div></div>'+
+        '<div><div class="v" style="color:#86efac">'+brl((pagos+res)*PRECO).replace(',00','')+'</div><div class="l">Total (c/ reserv.)</div></div>'+
       '</div>'+
       '<button id="admin-img">📲 Baixar imagem pro story</button>'+
       '<button id="admin-list">Ver lista de quem comprou</button>'+
