@@ -80,6 +80,8 @@
   .howto b { color:#fde68a; }
 
   /* admin */
+  body.adminmode .bar { display:none; }
+  body.adminmode { padding-bottom:40px; }
   .admin { background:rgba(253,230,138,.1); border:1px solid rgba(253,230,138,.4); border-radius:16px; padding:14px; margin-bottom:16px; }
   .admin .at { font-size:13px; color:#fde68a; font-weight:800; letter-spacing:1px; text-transform:uppercase; text-align:center; }
   .admin .ag { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-top:10px; text-align:center; }
@@ -129,7 +131,7 @@
     <span class="lg-taken"><i></i>vendido</span>
   </div>
   <div class="grid" id="grid"></div>
-  <div style="text-align:center;font-size:10px;color:#5b4a7a;margin-top:22px">versão 5 · firebase</div>
+  <div style="text-align:center;font-size:10px;color:#5b4a7a;margin-top:22px">versão 6 · admin grudento</div>
 </div>
 
 <div class="bar"><div class="inner">
@@ -198,7 +200,15 @@
   const PIX_NAME = 'MARINA SCHEFFER DE ARAUJO';   // max 25
   const PIX_CITY = 'MARINGA';                     // max 15
   const ADMIN_TOKEN = 'mae2026';
-  const isAdmin = new URLSearchParams(location.search).get('admin') === ADMIN_TOKEN;
+  (function(){
+    const p = new URLSearchParams(location.search);
+    let a = p.get('admin');
+    if(!a && location.hash){ const m = location.hash.match(/admin=([^&]+)/); if(m) a = m[1]; }
+    if(a === ADMIN_TOKEN) localStorage.setItem('rifa-admin','1');   // gruda neste aparelho
+    if(a === 'sair') localStorage.removeItem('rifa-admin');         // ?admin=sair pra desligar
+  })();
+  const isAdmin = localStorage.getItem('rifa-admin') === '1';
+  if(isAdmin) document.body.classList.add('adminmode');
 
   let taken = {};            // { "12": {nome,wpp,status:'reservado'|'pago'} }
   let sel = new Set((()=>{ try{ return JSON.parse(localStorage.getItem(SEL_KEY)||'[]'); }catch(e){ return []; } })());
@@ -357,7 +367,7 @@
     const pagos = vals.filter(t=>t.status==='pago').length;
     const res = vals.filter(t=>t.status==='reservado').length;
     $('adminbox').innerHTML =
-      '<div class="admin"><div class="at">Painel da Marina</div>'+
+      '<div class="admin"><div class="at">🔒 Modo controle (Marina)</div>'+
       '<div class="ag">'+
         '<div><div class="v">'+pagos+'</div><div class="l">Pagos</div></div>'+
         '<div><div class="v" style="color:#c9a86a">'+res+'</div><div class="l">Reservados</div></div>'+
