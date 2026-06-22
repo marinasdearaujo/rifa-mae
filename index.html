@@ -131,7 +131,7 @@
     <span class="lg-taken"><i></i>vendido</span>
   </div>
   <div class="grid" id="grid"></div>
-  <div style="text-align:center;font-size:10px;color:#5b4a7a;margin-top:22px">versão 7 · ok</div>
+  <div style="text-align:center;font-size:10px;color:#5b4a7a;margin-top:22px">versão 8 · admin só com link</div>
 </div>
 
 <div class="bar"><div class="inner">
@@ -200,14 +200,14 @@
   const PIX_NAME = 'MARINA SCHEFFER DE ARAUJO';   // max 25
   const PIX_CITY = 'MARINGA';                     // max 15
   const ADMIN_TOKEN = 'mae2026';
-  (function(){
+  localStorage.removeItem('rifa-admin');   // limpa o "modo grudento" das versões anteriores
+  function getAdminParam(){
     const p = new URLSearchParams(location.search);
     let a = p.get('admin');
     if(!a && location.hash){ const m = location.hash.match(/admin=([^&]+)/); if(m) a = m[1]; }
-    if(a === ADMIN_TOKEN) localStorage.setItem('rifa-admin','1');   // gruda neste aparelho
-    if(a === 'sair') localStorage.removeItem('rifa-admin');         // ?admin=sair pra desligar
-  })();
-  const isAdmin = localStorage.getItem('rifa-admin') === '1';
+    return a;
+  }
+  const isAdmin = getAdminParam() === ADMIN_TOKEN;   // admin SÓ quando o link tem ?admin=...
   if(isAdmin) document.body.classList.add('adminmode');
 
   let taken = {};            // { "12": {nome,wpp,status:'reservado'|'pago'} }
