@@ -185,7 +185,8 @@
 
 <script>
   // ===== CONFIG =====
-  const BLOB = 'https://jsonblob.com/api/jsonBlob/019eef87-d8b6-7bdc-8493-3e2ab22c01fe';
+  const API = 'https://api.restful-api.dev/objects/ff8081819d82fab6019eef917e7e48d3';
+  const SEL_KEY = 'rifa-mae-sel';
   const TOTAL = 400, PRECO = 15;
   const PIX_KEY = 'marinasdearaujo@gmail.com';
   const PIX_NAME = 'MARINA SCHEFFER DE ARAUJO';   // max 25
@@ -194,7 +195,8 @@
   const isAdmin = new URLSearchParams(location.search).get('admin') === ADMIN_TOKEN;
 
   let taken = {};            // { "12": {nome,wpp,status:'reservado'|'pago'} }
-  let sel = new Set();
+  let sel = new Set((()=>{ try{ return JSON.parse(localStorage.getItem(SEL_KEY)||'[]'); }catch(e){ return []; } })());
+  function saveSel(){ localStorage.setItem(SEL_KEY, JSON.stringify([...sel])); }
   const $ = id => document.getElementById(id);
 
   // ===== PIX EMV =====
@@ -208,17 +210,20 @@
   }
 
   // ===== DATA =====
+  function withTimeout(ms){ try{ return AbortSignal.timeout(ms); }catch(e){ return undefined; } }
   async function fetchData(){
     try{
-      const r = await fetch(BLOB, {headers:{'Accept':'application/json'}, cache:'no-store'});
+      const r = await fetch(API, {headers:{'Accept':'application/json'}, cache:'no-store', signal:withTimeout(12000)});
       const d = await r.json();
-      taken = d.taken || {};
+      taken = (d && d.data && d.data.taken) || {};
       return true;
     }catch(e){ return false; }
   }
   async function putData(){
-    const r = await fetch(BLOB, {method:'PUT', headers:{'Content-Type':'application/json','Accept':'application/json'}, body:JSON.stringify({taken})});
-    return r.ok;
+    try{
+      const r = await fetch(API, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name:'rifa-mae', data:{taken}}), signal:withTimeout(12000)});
+      return r.ok;
+    }catch(e){ return false; }
   }
 
   // ===== RENDER =====
@@ -249,6 +254,7 @@
     if(isAdmin){ return adminTap(i); }
     if(taken[i]) return;
     if(sel.has(i)) sel.delete(i); else sel.add(i);
+    saveSel();
     render();
   }
 
@@ -265,25 +271,27 @@
     if(!nome){ toast('Coloca seu nome 🙏'); return; }
     const wpp = $('f-wpp').value.trim();
     const btn = $('form-go'); btn.disabled=true; btn.textContent='Reservando...';
-    // pega a versão mais nova e checa conflito
-    await fetchData();
-    const conflito = [...sel].filter(i=>taken[i]);
-    if(conflito.length){
-      toast('Ops! '+conflito.map(pad).join(', ')+' acabaram de ser pegos. Escolhe outros 💜');
-      conflito.forEach(i=>sel.delete(i));
+    try{
+      // pega a versão mais nova e checa conflito
+      await fetchData();
+      const conflito = [...sel].filter(i=>taken[i]);
+      if(conflito.length){
+        toast('Ops! '+conflito.map(pad).join(', ')+' acabaram de ser pegos. Escolhe outros 💜');
+        conflito.forEach(i=>sel.delete(i)); saveSel();
+        $('modal-form').classList.remove('on'); render(); return;
+      }
+      [...sel].forEach(i=> taken[i]={nome,wpp,status:'reservado'});
+      const ok = await putData();
+      if(!ok){ toast('Sem conexão, tenta de novo num instante 💜'); [...sel].forEach(i=>delete taken[i]); return; }
+      const total = sel.size*PRECO;
+      const nums = [...sel].sort((a,b)=>a-b).map(pad).join(', ');
+      showPay(total, nums);
+      sel.clear(); saveSel();
+      $('modal-form').classList.remove('on');
+      render();
+    } finally {
       btn.disabled=false; btn.textContent='Reservar e gerar Pix';
-      $('modal-form').classList.remove('on'); render(); return;
     }
-    [...sel].forEach(i=> taken[i]={nome,wpp,status:'reservado'});
-    const ok = await putData();
-    if(!ok){ toast('Falha ao salvar, tenta de novo'); [...sel].forEach(i=>delete taken[i]); btn.disabled=false; btn.textContent='Reservar e gerar Pix'; return; }
-    const total = sel.size*PRECO;
-    const nums = [...sel].sort((a,b)=>a-b).map(pad).join(', ');
-    showPay(total, nums);
-    sel.clear();
-    btn.disabled=false; btn.textContent='Reservar e gerar Pix';
-    $('modal-form').classList.remove('on');
-    render();
   };
 
   function showPay(total, nums){
@@ -345,13 +353,19 @@
   }
 
   // ===== INIT + POLLING =====
-  (async ()=>{ await fetchData(); render(); })();
+  (async ()=>{
+    await fetchData();
+    // limpa da seleção salva qualquer número que já tenha sido vendido
+    let mudou=false; [...sel].forEach(i=>{ if(taken[i]){ sel.delete(i); mudou=true; } });
+    if(mudou) saveSel();
+    render();
+  })();
   setInterval(async ()=>{
     const had = JSON.stringify(taken);
     await fetchData();
     if(JSON.stringify(taken)!==had){
-      // se algum selecionado foi pego, tira
-      [...sel].forEach(i=>{ if(taken[i]){ sel.delete(i); } });
+      let mudou=false; [...sel].forEach(i=>{ if(taken[i]){ sel.delete(i); mudou=true; } });
+      if(mudou) saveSel();
       render();
     }
   }, 5000);
