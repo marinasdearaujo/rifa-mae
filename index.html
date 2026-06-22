@@ -131,7 +131,7 @@
     <span class="lg-taken"><i></i>vendido</span>
   </div>
   <div class="grid" id="grid"></div>
-  <div style="text-align:center;font-size:10px;color:#5b4a7a;margin-top:22px">versão 6 · admin grudento</div>
+  <div style="text-align:center;font-size:10px;color:#5b4a7a;margin-top:22px">versão 7 · ok</div>
 </div>
 
 <div class="bar"><div class="inner">
@@ -233,11 +233,17 @@
     try{ return await fetch(url, {...opts, signal:ctrl.signal}); }
     finally{ clearTimeout(t); }
   }
+  const K = i => 'n'+i;   // chave não-numérica (evita o Firebase virar array)
+  function normalize(d){
+    if(!d) return {};
+    if(Array.isArray(d)){ const o={}; d.forEach((v,idx)=>{ if(v) o['n'+idx]=v; }); return o; } // migra formato antigo
+    return d;
+  }
   async function fetchData(){
     try{
       const r = await tfetch(TAKEN_URL, {cache:'no-store'}, 12000);
       const d = await r.json();
-      taken = d || {};
+      taken = normalize(d);
       return true;
     }catch(e){ return false; }
   }
@@ -254,7 +260,7 @@
     const grid = $('grid'); grid.innerHTML='';
     for(let i=1;i<=TOTAL;i++){
       const d=document.createElement('div'); d.textContent=pad(i); d.dataset.n=i;
-      const t = taken[i];
+      const t = taken[K(i)];
       if(t){ d.className='n '+(t.status==='pago'?'taken':'reserved'); if(isAdmin) d.title=(t.nome||'')+' · '+t.status; }
       else { d.className='n'+(sel.has(i)?' sel':''); }
       d.onclick=()=>onTap(i);
@@ -274,7 +280,7 @@
 
   function onTap(i){
     if(isAdmin){ return adminTap(i); }
-    if(taken[i]) return;
+    if(taken[K(i)]) return;
     if(sel.has(i)) sel.delete(i); else sel.add(i);
     saveSel();
     render();
@@ -296,15 +302,15 @@
     try{
       // pega a versão mais nova e checa conflito
       await fetchData();
-      const conflito = [...sel].filter(i=>taken[i]);
+      const conflito = [...sel].filter(i=>taken[K(i)]);
       if(conflito.length){
         toast('Ops! '+conflito.map(pad).join(', ')+' acabaram de ser pegos. Escolhe outros 💜');
         conflito.forEach(i=>sel.delete(i)); saveSel();
         $('modal-form').classList.remove('on'); render(); return;
       }
-      [...sel].forEach(i=> taken[i]={nome,wpp,status:'reservado',ts:Date.now()});
+      [...sel].forEach(i=> taken[K(i)]={nome,wpp,status:'reservado',ts:Date.now()});
       const ok = await putData();
-      if(!ok){ toast('Sem conexão, tenta de novo num instante 💜'); [...sel].forEach(i=>delete taken[i]); return; }
+      if(!ok){ toast('Sem conexão, tenta de novo num instante 💜'); [...sel].forEach(i=>delete taken[K(i)]); return; }
       const arr = [...sel].sort((a,b)=>a-b);
       const total = arr.length*PRECO;
       showPay(total, arr);
@@ -341,7 +347,7 @@
   $('pay-cancel').onclick = async ()=>{
     const btn=$('pay-cancel'); btn.textContent='liberando...';
     await fetchData();
-    lastReserved.forEach(i=>{ if(taken[i] && taken[i].status==='reservado') delete taken[i]; });
+    lastReserved.forEach(i=>{ if(taken[K(i)] && taken[K(i)].status==='reservado') delete taken[K(i)]; });
     await putData();
     lastReserved = [];
     btn.textContent='cancelar reserva e liberar os números';
@@ -354,12 +360,12 @@
 
   // ===== ADMIN =====
   async function adminTap(i){
-    const t = taken[i];
+    const t = taken[K(i)];
     let next;
     if(!t) next={nome:'(admin)',wpp:'',status:'pago'};
     else if(t.status==='reservado') next={...t,status:'pago'};
     else next=null; // pago -> livre
-    if(next) taken[i]=next; else delete taken[i];
+    if(next) taken[K(i)]=next; else delete taken[K(i)];
     render(); await putData();
   }
   function renderAdmin(){
@@ -380,13 +386,14 @@
       '</div>';
     $('admin-img').onclick = exportImg;
     $('admin-list').onclick = ()=>{
-      const lines = Object.keys(taken).sort((a,b)=>a-b).map(k=>pad(k)+' · '+(taken[k].nome||'')+' · '+taken[k].status+(taken[k].wpp?(' · '+taken[k].wpp):''));
+      const lines = Object.keys(taken).map(k=>+String(k).replace(/\D/g,'')).sort((a,b)=>a-b)
+        .map(n=>{ const t=taken[K(n)]; return pad(n)+' · '+(t.nome||'')+' · '+t.status+(t.wpp?(' · '+t.wpp):''); });
       alert(lines.length?lines.join('\n'):'Ninguém comprou ainda.');
     };
   }
   async function exportImg(){
     const sg=$('story-grid'); sg.innerHTML='';
-    for(let i=1;i<=TOTAL;i++){ const c=document.createElement('div'); c.className='c2'+(taken[i]?' x':''); c.textContent=pad(i); sg.appendChild(c); }
+    for(let i=1;i<=TOTAL;i++){ const c=document.createElement('div'); c.className='c2'+(taken[K(i)]?' x':''); c.textContent=pad(i); sg.appendChild(c); }
     const livres=TOTAL-Object.keys(taken).length;
     $('story-left').textContent = livres>0?('Ainda faltam '+livres+' números 🍀'):'Todos vendidos! 🙏';
     const canvas = await html2canvas($('story'),{width:1080,height:1920,scale:1,backgroundColor:null});
@@ -397,7 +404,7 @@
   (async ()=>{
     await fetchData();
     // limpa da seleção salva qualquer número que já tenha sido vendido
-    let mudou=false; [...sel].forEach(i=>{ if(taken[i]){ sel.delete(i); mudou=true; } });
+    let mudou=false; [...sel].forEach(i=>{ if(taken[K(i)]){ sel.delete(i); mudou=true; } });
     if(mudou) saveSel();
     render();
   })();
@@ -405,7 +412,7 @@
     const had = JSON.stringify(taken);
     await fetchData();
     if(JSON.stringify(taken)!==had){
-      let mudou=false; [...sel].forEach(i=>{ if(taken[i]){ sel.delete(i); mudou=true; } });
+      let mudou=false; [...sel].forEach(i=>{ if(taken[K(i)]){ sel.delete(i); mudou=true; } });
       if(mudou) saveSel();
       render();
     }
