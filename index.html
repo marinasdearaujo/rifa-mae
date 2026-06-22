@@ -131,7 +131,7 @@
     <span class="lg-taken"><i></i>vendido</span>
   </div>
   <div class="grid" id="grid"></div>
-  <div style="text-align:center;font-size:10px;color:#5b4a7a;margin-top:22px">versão 8 · admin só com link</div>
+  <div style="text-align:center;font-size:10px;color:#5b4a7a;margin-top:22px">versão 9</div>
 </div>
 
 <div class="bar"><div class="inner">
@@ -247,11 +247,15 @@
       return true;
     }catch(e){ return false; }
   }
-  async function putData(){
-    try{
-      const r = await tfetch(TAKEN_URL, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(taken)}, 12000);
-      return r.ok;
-    }catch(e){ return false; }
+  const FBROOT = FB.replace(/\/$/,'');
+  // grava UM número por vez (reservas simultâneas não se atropelam)
+  async function putKey(i, val){
+    try{ const r = await tfetch(FBROOT+'/taken/'+K(i)+'.json', {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(val)}, 12000); return r.ok; }
+    catch(e){ return false; }
+  }
+  async function delKey(i){
+    try{ const r = await tfetch(FBROOT+'/taken/'+K(i)+'.json', {method:'DELETE'}, 12000); return r.ok; }
+    catch(e){ return false; }
   }
 
   // ===== RENDER =====
@@ -308,9 +312,10 @@
         conflito.forEach(i=>sel.delete(i)); saveSel();
         $('modal-form').classList.remove('on'); render(); return;
       }
-      [...sel].forEach(i=> taken[K(i)]={nome,wpp,status:'reservado',ts:Date.now()});
-      const ok = await putData();
-      if(!ok){ toast('Sem conexão, tenta de novo num instante 💜'); [...sel].forEach(i=>delete taken[K(i)]); return; }
+      const arr0 = [...sel];
+      arr0.forEach(i=> taken[K(i)]={nome,wpp,status:'reservado',ts:Date.now()});
+      const results = await Promise.all(arr0.map(i=> putKey(i, taken[K(i)])));
+      if(results.some(r=>!r)){ toast('Sem conexão, tenta de novo num instante 💜'); arr0.forEach(i=>delete taken[K(i)]); return; }
       const arr = [...sel].sort((a,b)=>a-b);
       const total = arr.length*PRECO;
       showPay(total, arr);
@@ -347,8 +352,8 @@
   $('pay-cancel').onclick = async ()=>{
     const btn=$('pay-cancel'); btn.textContent='liberando...';
     await fetchData();
-    lastReserved.forEach(i=>{ if(taken[K(i)] && taken[K(i)].status==='reservado') delete taken[K(i)]; });
-    await putData();
+    const toFree = lastReserved.filter(i=> taken[K(i)] && taken[K(i)].status==='reservado');
+    await Promise.all(toFree.map(i=>{ delete taken[K(i)]; return delKey(i); }));
     lastReserved = [];
     btn.textContent='cancelar reserva e liberar os números';
     $('modal-pay').classList.remove('on');
@@ -365,8 +370,8 @@
     if(!t) next={nome:'(admin)',wpp:'',status:'pago'};
     else if(t.status==='reservado') next={...t,status:'pago'};
     else next=null; // pago -> livre
-    if(next) taken[K(i)]=next; else delete taken[K(i)];
-    render(); await putData();
+    if(next){ taken[K(i)]=next; render(); await putKey(i, next); }
+    else { delete taken[K(i)]; render(); await delKey(i); }
   }
   function renderAdmin(){
     const vals = Object.values(taken);
