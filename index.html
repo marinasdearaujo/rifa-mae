@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Rifa Solidária · Pela minha mãe 💜</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Manrope:wght@400;500;600;700;800&display=swap');
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body { font-family:'Manrope',sans-serif; color:#fff; padding:0 0 130px;
+    background:
+      radial-gradient(circle at 12% 4%, rgba(244,114,182,.20), transparent 38%),
+      radial-gradient(circle at 90% 96%, rgba(192,132,252,.18), transparent 40%),
+      linear-gradient(160deg, #160e29 0%, #221540 55%, #2b1840 100%);
+    min-height:100vh; }
+  .wrap { max-width:560px; margin:0 auto; padding:22px 16px; }
+
+  /* topo */
+  .head { text-align:center; }
+  .kicker { font-size:14px; letter-spacing:5px; text-transform:uppercase; color:#f0abfc; font-weight:700; }
+  h1 { font-family:'Playfair Display',serif; font-size:42px; line-height:1; margin-top:6px;
+       background:linear-gradient(90deg,#fbcfe8,#f0abfc,#d8b4fe); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+  .desc { font-size:15px; color:#e9d5ff; margin-top:12px; line-height:1.5; }
+  .desc b { color:#fff; }
+  .meta { display:flex; gap:10px; justify-content:center; margin-top:16px; flex-wrap:wrap; }
+  .pill { background:rgba(255,255,255,.07); border:1px solid rgba(240,171,252,.3); border-radius:999px; padding:8px 16px; font-size:14px; font-weight:700; }
+  .pill.prize { background:linear-gradient(135deg,#16a34a,#15803d); border-color:rgba(255,255,255,.25); }
+  .pill .s { font-weight:500; opacity:.85; }
+
+  .avail { text-align:center; margin:18px 0 4px; font-size:15px; color:#fde68a; font-weight:700; }
+  .legend { display:flex; gap:16px; justify-content:center; font-size:12px; color:#c4b5fd; margin-bottom:12px; }
+  .legend i { display:inline-block; width:12px; height:12px; border-radius:4px; vertical-align:middle; margin-right:5px; }
+  .lg-free i { background:#ede9fe; } .lg-sel i { background:linear-gradient(135deg,#f472b6,#c084fc); } .lg-taken i { background:#3a2a55; }
+
+  /* grade */
+  .grid { display:grid; grid-template-columns:repeat(8,1fr); gap:6px; }
+  .n { aspect-ratio:1; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700;
+       border-radius:8px; cursor:pointer; user-select:none; background:#ede9fe; color:#3b1d52; transition:transform .05s; }
+  .n:active { transform:scale(.9); }
+  .n.sel { background:linear-gradient(135deg,#f472b6,#c084fc); color:#fff; box-shadow:0 4px 12px rgba(192,132,252,.5); }
+  .n.taken { background:#3a2a55; color:#6f5d8f; cursor:not-allowed; }
+  .n.reserved { background:#4a3a1f; color:#c9a86a; }
+
+  /* barra fixa de seleção */
+  .bar { position:fixed; left:0; right:0; bottom:0; background:rgba(22,14,41,.97); border-top:1px solid rgba(240,171,252,.3);
+         padding:14px 16px calc(14px + env(safe-area-inset-bottom)); backdrop-filter:blur(8px); }
+  .bar .inner { max-width:560px; margin:0 auto; display:flex; align-items:center; gap:12px; }
+  .bar .sum { flex:1; font-size:14px; }
+  .bar .sum b { font-size:19px; display:block; }
+  .bar button { background:linear-gradient(135deg,#16a34a,#15803d); color:#fff; border:none; border-radius:14px;
+                padding:14px 20px; font-weight:800; font-size:15px; cursor:pointer; }
+  .bar button:disabled { opacity:.4; }
+
+  /* modal */
+  .modal { position:fixed; inset:0; background:rgba(10,6,20,.8); display:none; align-items:center; justify-content:center; padding:18px; z-index:50; overflow:auto; }
+  .modal.on { display:flex; }
+  .sheet { background:linear-gradient(160deg,#241640,#2b1840); border:1px solid rgba(240,171,252,.3); border-radius:24px;
+           max-width:440px; width:100%; padding:24px; max-height:92vh; overflow:auto; }
+  .sheet h2 { font-family:'Playfair Display',serif; font-size:26px; text-align:center;
+              background:linear-gradient(90deg,#fbcfe8,#f0abfc,#d8b4fe); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+  .sheet label { display:block; font-size:13px; color:#c4b5fd; margin:16px 0 6px; font-weight:600; }
+  .sheet input { width:100%; padding:13px; border-radius:12px; border:1px solid rgba(240,171,252,.3); background:rgba(255,255,255,.06); color:#fff; font-size:16px; }
+  .sel-list { background:rgba(255,255,255,.06); border-radius:12px; padding:12px; margin-top:8px; font-size:14px; line-height:1.6; }
+  .sel-list b { color:#fde68a; }
+  .btn-go { width:100%; margin-top:20px; background:linear-gradient(135deg,#16a34a,#15803d); color:#fff; border:none; border-radius:14px; padding:15px; font-weight:800; font-size:16px; cursor:pointer; }
+  .btn-x { width:100%; margin-top:10px; background:transparent; color:#c4b5fd; border:none; padding:10px; font-size:14px; cursor:pointer; }
+
+  /* pagamento */
+  #qr { display:flex; justify-content:center; margin:18px 0; background:#fff; padding:16px; border-radius:16px; width:fit-content; margin-left:auto; margin-right:auto; }
+  .pixval { text-align:center; font-size:30px; font-weight:800; color:#86efac; }
+  .pixname { text-align:center; font-size:14px; color:#c4b5fd; margin-top:4px; }
+  .copybox { margin-top:16px; }
+  .copybox textarea { width:100%; height:74px; border-radius:12px; border:1px solid rgba(240,171,252,.3); background:rgba(255,255,255,.06); color:#fff; font-size:11px; padding:10px; resize:none; }
+  .copybtn { width:100%; margin-top:8px; background:linear-gradient(135deg,#f472b6,#c084fc); color:#fff; border:none; border-radius:12px; padding:13px; font-weight:800; font-size:15px; cursor:pointer; }
+  .howto { font-size:13px; color:#e9d5ff; line-height:1.6; margin-top:16px; background:rgba(255,255,255,.05); border-radius:12px; padding:14px; }
+  .howto b { color:#fde68a; }
+
+  /* admin */
+  .admin { background:rgba(253,230,138,.1); border:1px solid rgba(253,230,138,.4); border-radius:16px; padding:14px; margin-bottom:16px; }
+  .admin .at { font-size:13px; color:#fde68a; font-weight:800; letter-spacing:1px; text-transform:uppercase; text-align:center; }
+  .admin .ag { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-top:10px; text-align:center; }
+  .admin .ag .v { font-size:20px; font-weight:800; } .admin .ag .l { font-size:10px; color:#c4b5fd; }
+  .admin button { width:100%; margin-top:10px; background:#2c1b4d; color:#e9d5ff; border:none; border-radius:12px; padding:12px; font-weight:700; cursor:pointer; }
+  .toast { position:fixed; bottom:90px; left:50%; transform:translateX(-50%); background:#15803d; color:#fff; padding:12px 22px; border-radius:999px; font-weight:700; font-size:14px; z-index:90; display:none; }
+
+  /* story export (admin) escondido */
+  #story { position:fixed; left:-9999px; top:0; width:1080px; height:1920px;
+    background:radial-gradient(circle at 15% 8%, rgba(244,114,182,.18), transparent 40%),radial-gradient(circle at 88% 92%, rgba(192,132,252,.16), transparent 42%),linear-gradient(155deg,#1a1130,#221540 45%,#2b1840); color:#fff; padding:64px 60px 56px; display:flex; flex-direction:column; }
+  #story .k{font-size:26px;letter-spacing:6px;text-transform:uppercase;color:#f0abfc;font-weight:700}
+  #story .t{font-family:'Playfair Display',serif;font-size:104px;font-weight:800;line-height:1;margin-top:8px;background:linear-gradient(90deg,#fbcfe8,#f0abfc,#d8b4fe);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+  #story .su{font-size:30px;color:#e9d5ff;margin-top:18px;line-height:1.4;max-width:760px;font-weight:500}
+  #story .pz{position:absolute;top:60px;right:60px;text-align:center;background:linear-gradient(135deg,#16a34a,#15803d);border-radius:28px;padding:22px 26px;border:2px solid rgba(255,255,255,.25)}
+  #story .pz .a{font-size:22px;letter-spacing:3px;font-weight:700;opacity:.9}#story .pz .b{font-size:30px;font-weight:800}#story .pz .c{font-family:'Playfair Display',serif;font-size:58px;font-weight:800;line-height:1;margin-top:4px}
+  #story .lb{margin-top:24px;background:rgba(253,230,138,.14);border:1px solid rgba(253,230,138,.4);border-radius:20px;padding:18px;text-align:center;font-size:32px;font-weight:700;color:#fde68a}
+  #story .gw{margin-top:24px;background:rgba(255,255,255,.05);border:1px solid rgba(240,171,252,.25);border-radius:28px;padding:28px 24px}
+  #story .g2{display:grid;grid-template-columns:repeat(20,1fr);gap:8px}
+  #story .c2{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;border-radius:8px;background:rgba(255,255,255,.93);color:#3b1d52}
+  #story .c2.x{background:rgba(255,255,255,.06);color:rgba(255,255,255,.22);text-decoration:line-through}
+  #story .ft{margin-top:auto;padding-top:30px}
+  #story .pr{display:flex;align-items:center;gap:18px;margin-bottom:22px}
+  #story .pb{background:linear-gradient(135deg,#f472b6,#c084fc);border-radius:22px;padding:16px 30px;font-size:46px;font-weight:800}#story .pb span{font-size:24px;font-weight:600;opacity:.9}
+  #story .dr{font-size:30px;color:#e9d5ff;font-weight:600}#story .dr b{color:#fde68a;font-size:34px}
+  #story .px{background:rgba(255,255,255,.97);color:#2b1840;border-radius:22px;padding:22px 30px}
+  #story .px .l{font-size:22px;letter-spacing:3px;font-weight:800;color:#9333ea;text-transform:uppercase}#story .px .v{font-size:34px;font-weight:800;margin-top:4px}#story .px .n{font-size:24px;font-weight:600;margin-top:6px;color:#4b2e63}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div id="adminbox"></div>
+  <div class="head">
+    <div class="kicker">Rifa Solidária</div>
+    <h1>Pela minha mãe</h1>
+    <div class="desc">Minha mãe operou um olho às pressas, tinha risco de cegueira, e ainda falta o outro.. cada lente custa <b>R$ 6.500</b>. Cada número ajuda demais. De coração, obrigada 💜</div>
+    <div class="meta">
+      <div class="pill prize">Prêmio: PIX <span class="s">R$ 300</span></div>
+      <div class="pill">R$ 15 <span class="s">/ número</span></div>
+      <div class="pill">Sorteio <span class="s">12/07</span></div>
+    </div>
+  </div>
+
+  <div class="avail" id="avail">Carregando números...</div>
+  <div class="legend">
+    <span class="lg-free"><i></i>livre</span>
+    <span class="lg-sel"><i></i>escolhido</span>
+    <span class="lg-taken"><i></i>vendido</span>
+  </div>
+  <div class="grid" id="grid"></div>
+</div>
+
+<div class="bar"><div class="inner">
+  <div class="sum"><span id="bar-count">0 números</span><b id="bar-total">R$ 0,00</b></div>
+  <button id="bar-go" disabled>Escolher números</button>
+</div></div>
+
+<!-- modal dados -->
+<div class="modal" id="modal-form">
+  <div class="sheet">
+    <h2>Confirmar números</h2>
+    <div class="sel-list" id="form-sel"></div>
+    <label>Seu nome (pra gente identificar o Pix)</label>
+    <input id="f-nome" placeholder="Nome completo" autocomplete="name">
+    <label>WhatsApp (opcional)</label>
+    <input id="f-wpp" placeholder="(00) 00000-0000" inputmode="tel">
+    <button class="btn-go" id="form-go">Reservar e gerar Pix</button>
+    <button class="btn-x" id="form-cancel">cancelar</button>
+  </div>
+</div>
+
+<!-- modal pagamento -->
+<div class="modal" id="modal-pay">
+  <div class="sheet">
+    <h2>Quase lá! 🍀</h2>
+    <div class="sel-list" id="pay-sel"></div>
+    <div class="pixval" id="pay-val">R$ 0,00</div>
+    <div class="pixname">para Marina Scheffer de Araujo · Itaú</div>
+    <div id="qr"></div>
+    <div class="copybox">
+      <textarea id="pix-code" readonly></textarea>
+      <button class="copybtn" id="pix-copy">📋 Copiar código Pix</button>
+    </div>
+    <div class="howto">
+      Abra seu banco, escolha <b>Pix › Pix Copia e Cola</b> (ou leia o QR Code), confira o valor e confirme.<br>
+      Se puder, manda o print pro meu direct depois, pra eu confirmar mais rápido 💜
+    </div>
+    <button class="btn-x" id="pay-close">escolher mais números</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- story export (admin) -->
+<div id="story">
+  <div class="pz"><div class="a">PRÊMIO</div><div class="b">PIX</div><div class="c">R$300</div></div>
+  <div class="k">Rifa Solidária</div><div class="t">Pela minha mãe</div>
+  <div class="su">Cada número ajuda a custear a <b>cirurgia dos olhos da minha mãe</b>. De coração, obrigada 💜</div>
+  <div class="lb" id="story-left">—</div>
+  <div class="gw"><div class="g2" id="story-grid"></div></div>
+  <div class="ft">
+    <div class="pr"><div class="pb">R$15 <span>/ número</span></div><div class="dr">Sorteio: <b>12/07</b></div></div>
+    <div class="px"><div class="l">Chave Pix · e-mail (Itaú)</div><div class="v">marinasdearaujo@gmail.com</div><div class="n">Titular: Marina Scheffer de Araujo</div></div>
+  </div>
+</div>
+
+<script>
+  // ===== CONFIG =====
+  const BLOB = 'https://jsonblob.com/api/jsonBlob/019eef87-d8b6-7bdc-8493-3e2ab22c01fe';
+  const TOTAL = 400, PRECO = 15;
+  const PIX_KEY = 'marinasdearaujo@gmail.com';
+  const PIX_NAME = 'MARINA SCHEFFER DE ARAUJO';   // max 25
+  const PIX_CITY = 'MARINGA';                     // max 15
+  const ADMIN_TOKEN = 'mae2026';
+  const isAdmin = new URLSearchParams(location.search).get('admin') === ADMIN_TOKEN;
+
+  let taken = {};            // { "12": {nome,wpp,status:'reservado'|'pago'} }
+  let sel = new Set();
+  const $ = id => document.getElementById(id);
+
+  // ===== PIX EMV =====
+  function f(id,v){ return id + String(v.length).padStart(2,'0') + v; }
+  function crc16(s){ let c=0xFFFF; for(let i=0;i<s.length;i++){ c^=s.charCodeAt(i)<<8; for(let j=0;j<8;j++){ c=(c&0x8000)?((c<<1)^0x1021):(c<<1); c&=0xFFFF; } } return c.toString(16).toUpperCase().padStart(4,'0'); }
+  function pix(amount){
+    const mai = f('26', f('00','br.gov.bcb.pix') + f('01', PIX_KEY));
+    const add = f('62', f('05','***'));
+    let p = f('00','01') + mai + f('52','0000') + f('53','986') + f('54', amount.toFixed(2)) + f('58','BR') + f('59', PIX_NAME.substring(0,25)) + f('60', PIX_CITY.substring(0,15)) + add + '6304';
+    return p + crc16(p);
+  }
+
+  // ===== DATA =====
+  async function fetchData(){
+    try{
+      const r = await fetch(BLOB, {headers:{'Accept':'application/json'}, cache:'no-store'});
+      const d = await r.json();
+      taken = d.taken || {};
+      return true;
+    }catch(e){ return false; }
+  }
+  async function putData(){
+    const r = await fetch(BLOB, {method:'PUT', headers:{'Content-Type':'application/json','Accept':'application/json'}, body:JSON.stringify({taken})});
+    return r.ok;
+  }
+
+  // ===== RENDER =====
+  function pad(n){ return String(n).padStart(3,'0'); }
+  function render(){
+    const grid = $('grid'); grid.innerHTML='';
+    for(let i=1;i<=TOTAL;i++){
+      const d=document.createElement('div'); d.textContent=pad(i); d.dataset.n=i;
+      const t = taken[i];
+      if(t){ d.className='n '+(t.status==='pago'?'taken':'reserved'); if(isAdmin) d.title=(t.nome||'')+' · '+t.status; }
+      else { d.className='n'+(sel.has(i)?' sel':''); }
+      d.onclick=()=>onTap(i);
+      grid.appendChild(d);
+    }
+    const livres = TOTAL - Object.keys(taken).length;
+    $('avail').textContent = livres>0 ? (livres+' números disponíveis de '+TOTAL) : 'Todos os números foram vendidos! 🙏';
+    updateBar();
+    if(isAdmin) renderAdmin();
+  }
+  function updateBar(){
+    const n=sel.size; $('bar-count').textContent = n+' número'+(n!==1?'s':'');
+    $('bar-total').textContent = brl(n*PRECO);
+    $('bar-go').disabled = n===0;
+  }
+  function brl(v){ return 'R$ '+v.toFixed(2).replace('.',','); }
+
+  function onTap(i){
+    if(isAdmin){ return adminTap(i); }
+    if(taken[i]) return;
+    if(sel.has(i)) sel.delete(i); else sel.add(i);
+    render();
+  }
+
+  // ===== FLUXO PÚBLICO =====
+  $('bar-go').onclick = ()=>{
+    if(!sel.size) return;
+    $('form-sel').innerHTML = 'Números: <b>'+[...sel].sort((a,b)=>a-b).map(pad).join(', ')+'</b><br>Total: <b>'+brl(sel.size*PRECO)+'</b>';
+    $('modal-form').classList.add('on');
+  };
+  $('form-cancel').onclick = ()=> $('modal-form').classList.remove('on');
+
+  $('form-go').onclick = async ()=>{
+    const nome = $('f-nome').value.trim();
+    if(!nome){ toast('Coloca seu nome 🙏'); return; }
+    const wpp = $('f-wpp').value.trim();
+    const btn = $('form-go'); btn.disabled=true; btn.textContent='Reservando...';
+    // pega a versão mais nova e checa conflito
+    await fetchData();
+    const conflito = [...sel].filter(i=>taken[i]);
+    if(conflito.length){
+      toast('Ops! '+conflito.map(pad).join(', ')+' acabaram de ser pegos. Escolhe outros 💜');
+      conflito.forEach(i=>sel.delete(i));
+      btn.disabled=false; btn.textContent='Reservar e gerar Pix';
+      $('modal-form').classList.remove('on'); render(); return;
+    }
+    [...sel].forEach(i=> taken[i]={nome,wpp,status:'reservado'});
+    const ok = await putData();
+    if(!ok){ toast('Falha ao salvar, tenta de novo'); [...sel].forEach(i=>delete taken[i]); btn.disabled=false; btn.textContent='Reservar e gerar Pix'; return; }
+    const total = sel.size*PRECO;
+    const nums = [...sel].sort((a,b)=>a-b).map(pad).join(', ');
+    showPay(total, nums);
+    sel.clear();
+    btn.disabled=false; btn.textContent='Reservar e gerar Pix';
+    $('modal-form').classList.remove('on');
+    render();
+  };
+
+  function showPay(total, nums){
+    $('pay-sel').innerHTML = 'Seus números: <b>'+nums+'</b>';
+    $('pay-val').textContent = brl(total);
+    const code = pix(total);
+    $('pix-code').value = code;
+    $('qr').innerHTML='';
+    new QRCode($('qr'), {text:code, width:210, height:210, correctLevel:QRCode.CorrectLevel.M});
+    $('modal-pay').classList.add('on');
+  }
+  $('pix-copy').onclick = ()=>{
+    const t=$('pix-code'); t.select();
+    navigator.clipboard.writeText(t.value).then(()=>toast('Código Pix copiado! 🍀')).catch(()=>{ document.execCommand('copy'); toast('Copiado!'); });
+  };
+  $('pay-close').onclick = ()=> $('modal-pay').classList.remove('on');
+
+  function toast(msg){ const t=$('toast'); t.textContent=msg; t.style.display='block'; clearTimeout(t._t); t._t=setTimeout(()=>t.style.display='none',2600); }
+
+  // ===== ADMIN =====
+  async function adminTap(i){
+    const t = taken[i];
+    let next;
+    if(!t) next={nome:'(admin)',wpp:'',status:'pago'};
+    else if(t.status==='reservado') next={...t,status:'pago'};
+    else next=null; // pago -> livre
+    if(next) taken[i]=next; else delete taken[i];
+    render(); await putData();
+  }
+  function renderAdmin(){
+    const vals = Object.values(taken);
+    const pagos = vals.filter(t=>t.status==='pago').length;
+    const res = vals.filter(t=>t.status==='reservado').length;
+    $('adminbox').innerHTML =
+      '<div class="admin"><div class="at">Painel da Marina</div>'+
+      '<div class="ag">'+
+        '<div><div class="v">'+pagos+'</div><div class="l">Pagos</div></div>'+
+        '<div><div class="v" style="color:#c9a86a">'+res+'</div><div class="l">Reservados</div></div>'+
+        '<div><div class="v" style="color:#fde68a">'+(TOTAL-vals.length)+'</div><div class="l">Livres</div></div>'+
+        '<div><div class="v" style="color:#86efac">'+brl(pagos*PRECO).replace(',00','')+'</div><div class="l">Recebido</div></div>'+
+      '</div>'+
+      '<button id="admin-img">📲 Baixar imagem pro story</button>'+
+      '<button id="admin-list">Ver lista de quem comprou</button>'+
+      '<div class="l" style="text-align:center;margin-top:8px;font-size:11px;color:#9d8bbd">Toque num número: livre → pago → livre. Reservado → pago.</div>'+
+      '</div>';
+    $('admin-img').onclick = exportImg;
+    $('admin-list').onclick = ()=>{
+      const lines = Object.keys(taken).sort((a,b)=>a-b).map(k=>pad(k)+' · '+(taken[k].nome||'')+' · '+taken[k].status+(taken[k].wpp?(' · '+taken[k].wpp):''));
+      alert(lines.length?lines.join('\n'):'Ninguém comprou ainda.');
+    };
+  }
+  async function exportImg(){
+    const sg=$('story-grid'); sg.innerHTML='';
+    for(let i=1;i<=TOTAL;i++){ const c=document.createElement('div'); c.className='c2'+(taken[i]?' x':''); c.textContent=pad(i); sg.appendChild(c); }
+    const livres=TOTAL-Object.keys(taken).length;
+    $('story-left').textContent = livres>0?('Ainda faltam '+livres+' números 🍀'):'Todos vendidos! 🙏';
+    const canvas = await html2canvas($('story'),{width:1080,height:1920,scale:1,backgroundColor:null});
+    const a=document.createElement('a'); a.download='rifa-atualizada.png'; a.href=canvas.toDataURL('image/png'); a.click();
+  }
+
+  // ===== INIT + POLLING =====
+  (async ()=>{ await fetchData(); render(); })();
+  setInterval(async ()=>{
+    const had = JSON.stringify(taken);
+    await fetchData();
+    if(JSON.stringify(taken)!==had){
+      // se algum selecionado foi pego, tira
+      [...sel].forEach(i=>{ if(taken[i]){ sel.delete(i); } });
+      render();
+    }
+  }, 5000);
+</script>
+</body>
+</html>
