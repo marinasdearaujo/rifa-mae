@@ -129,7 +129,7 @@
     <span class="lg-taken"><i></i>vendido</span>
   </div>
   <div class="grid" id="grid"></div>
-  <div style="text-align:center;font-size:10px;color:#5b4a7a;margin-top:22px">versão 4 · com pagar/cancelar</div>
+  <div style="text-align:center;font-size:10px;color:#5b4a7a;margin-top:22px">versão 5 · firebase</div>
 </div>
 
 <div class="bar"><div class="inner">
@@ -189,7 +189,9 @@
 
 <script>
   // ===== CONFIG =====
-  const API = 'https://api.restful-api.dev/objects/ff8081819d82fab6019eef917e7e48d3';
+  // Banco Firebase Realtime Database. Cole abaixo a URL do seu banco:
+  const FB = 'https://rifa-mae-default-rtdb.firebaseio.com';
+  const TAKEN_URL = FB.replace(/\/$/,'') + '/taken.json';
   const SEL_KEY = 'rifa-mae-sel';
   const TOTAL = 400, PRECO = 15;
   const PIX_KEY = 'marinasdearaujo@gmail.com';
@@ -223,15 +225,15 @@
   }
   async function fetchData(){
     try{
-      const r = await tfetch(API, {headers:{'Accept':'application/json'}, cache:'no-store'}, 12000);
+      const r = await tfetch(TAKEN_URL, {cache:'no-store'}, 12000);
       const d = await r.json();
-      taken = (d && d.data && d.data.taken) || {};
+      taken = d || {};
       return true;
     }catch(e){ return false; }
   }
   async function putData(){
     try{
-      const r = await tfetch(API, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name:'rifa-mae', data:{taken}})}, 12000);
+      const r = await tfetch(TAKEN_URL, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(taken)}, 12000);
       return r.ok;
     }catch(e){ return false; }
   }
